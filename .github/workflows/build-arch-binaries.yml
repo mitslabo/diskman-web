@@ -13,10 +13,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
 
@@ -29,21 +29,21 @@ jobs:
         run: task build-all
 
       - name: Upload amd64 artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: diskman-web-amd64
           path: build/diskman-web.amd64
           if-no-files-found: error
 
       - name: Upload arm64 artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: diskman-web-arm64
           path: build/diskman-web.arm64
           if-no-files-found: error
 
       - name: Upload arm artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: diskman-web-arm
           path: build/diskman-web.arm
@@ -58,19 +58,19 @@ jobs:
 
     steps:
       - name: Download amd64 artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: diskman-web-amd64
           path: build
 
       - name: Download arm64 artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: diskman-web-arm64
           path: build
 
       - name: Download arm artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: diskman-web-arm
           path: build
