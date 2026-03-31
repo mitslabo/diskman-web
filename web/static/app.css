@@ -1,0 +1,590 @@
+:root {
+    --bg: #ffffff;
+    --panel: #f5f5f5;
+    --border: #d0d0d0;
+    --accent: #d32f2f;
+    --green: #388e3c;
+    --yellow: #f9a825;
+    --cyan: #0277bd;
+    --red: #d32f2f;
+    --text: #212121;
+    --text-dim: #757575;
+    --slot-w: 140px;
+    --slot-h: 52px;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Consolas', 'Courier New', monospace;
+    min-height: 100vh;
+}
+
+body.dry-run-mode {
+    border: 3px solid var(--yellow);
+}
+
+header {
+    background: var(--panel);
+    border-bottom: 2px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+header h1 {
+    font-size: 1.2rem;
+    color: var(--cyan);
+}
+
+.badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.badge-dry {
+    background: var(--yellow);
+    color: #000;
+}
+
+.badge-debug {
+    background: var(--cyan);
+    color: #fff;
+}
+
+.badge-conn {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+}
+
+.badge-conn.ok {
+    background: var(--green);
+    color: #fff;
+}
+
+.badge-conn.err {
+    background: var(--red);
+    color: #fff;
+}
+
+.badge-conn.reconnecting {
+    background: var(--yellow);
+    color: #000;
+}
+
+header .spacer {
+    flex: 1;
+}
+
+main {
+    min-height: calc(100vh - 57px);
+}
+
+/* ---- sidebar: enclosure selector ---- */
+#sidebar {
+    display: none;
+    width: 200px;
+    min-width: 160px;
+    background: var(--panel);
+    border-right: 2px solid var(--border);
+    padding: 16px 8px;
+}
+
+#sidebar h2 {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    padding: 0 8px;
+}
+
+.enc-item {
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+    border: 1px solid transparent;
+    transition: background 0.15s;
+}
+
+.enc-item:hover {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.enc-item.active {
+    background: var(--border);
+    border-color: var(--cyan);
+    color: var(--cyan);
+}
+
+/* ---- main panel ---- */
+#content {
+    flex: 1;
+    padding: 20px;
+    overflow: auto;
+}
+
+.content-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.content-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+}
+
+.picker-wrap {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+}
+
+.picker-wrap.show {
+    display: inline-flex;
+}
+
+.status-chip {
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    color: var(--cyan);
+    background: rgba(2, 119, 189, 0.08);
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+select {
+    padding: 7px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    font-family: inherit;
+}
+
+/* ---- disk grid ---- */
+.section-title {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+}
+
+#disk-grid {
+    display: inline-grid;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+
+.disk-slot {
+    width: var(--slot-w);
+    height: var(--slot-h);
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: var(--panel);
+    user-select: none;
+}
+
+.disk-slot:hover:not(.busy) {
+    border-color: var(--cyan);
+}
+
+/* Source slot: green */
+.disk-slot.selected-src {
+    border-color: var(--green);
+    background: rgba(56, 142, 60, 0.12);
+    color: var(--green);
+}
+
+/* Destination / erase target: red */
+.disk-slot.selected-dst {
+    border-color: var(--red);
+    background: rgba(211, 47, 47, 0.10);
+    color: var(--red);
+}
+
+.disk-slot.busy {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.slot-label {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+}
+
+.slot-name {
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+
+.slot-status {
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    font-size: 0.65rem;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: var(--accent);
+    color: #fff;
+    font-weight: bold;
+}
+
+/* Source badge: green */
+.disk-slot.selected-src .slot-status {
+    background: var(--green);
+}
+
+/* Destination / erase badge: red */
+.disk-slot.selected-dst .slot-status {
+    background: var(--red);
+}
+
+/* ---- operation panel ---- */
+#op-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    max-width: 500px;
+    margin-bottom: 24px;
+}
+
+#op-panel h2 {
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+    color: var(--cyan);
+}
+
+.op-step {
+    margin-bottom: 12px;
+}
+
+.op-step label {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    display: block;
+    margin-bottom: 4px;
+}
+
+.slot-display {
+    display: inline-block;
+    padding: 4px 12px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.85rem;
+    min-width: 80px;
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.op-btns {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+button {
+    padding: 7px 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: bold;
+    transition: opacity 0.15s;
+}
+
+button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background: var(--cyan);
+    color: #fff;
+}
+
+.btn-danger {
+    background: var(--accent);
+    color: #fff;
+}
+
+.btn-warn {
+    background: var(--yellow);
+    color: #000;
+}
+
+.btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+
+button:hover:not(:disabled) {
+    opacity: 0.80;
+}
+
+/* ---- confirm modal ---- */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-overlay.show {
+    display: flex;
+}
+
+.modal {
+    background: var(--bg);
+    border: 2px solid var(--cyan);
+    border-radius: 10px;
+    padding: 28px 32px;
+    min-width: 340px;
+    max-width: 420px;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+
+.modal h2 {
+    color: var(--cyan);
+    margin-bottom: 16px;
+}
+
+.modal .action-line {
+    font-size: 1rem;
+    margin-bottom: 20px;
+    color: var(--accent);
+}
+
+.modal .code-display {
+    font-size: 1.8rem;
+    letter-spacing: 0.4em;
+    color: var(--accent);
+    margin-bottom: 16px;
+    font-weight: bold;
+}
+
+.modal input[type=text] {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 1.4rem;
+    text-align: center;
+    letter-spacing: 0.3em;
+    margin-bottom: 16px;
+    outline: none;
+}
+
+.modal input.mismatch {
+    border-color: var(--red);
+}
+
+.modal-btns {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+/* ---- cancel confirm modal ---- */
+#cancel-modal.modal {
+    border-color: var(--accent);
+}
+
+#cancel-modal h2 {
+    color: var(--accent);
+}
+
+/* ---- job list ---- */
+#job-section {
+    margin-top: 8px;
+}
+
+#job-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.job-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.job-card.state-running {
+    border-left: 3px solid var(--green);
+}
+
+.job-card.state-done {
+    border-left: 3px solid var(--cyan);
+    opacity: 0.7;
+}
+
+.job-card.state-error {
+    border-left: 3px solid var(--red);
+}
+
+.job-card.state-cancelled {
+    border-left: 3px solid var(--text-dim);
+    opacity: 0.6;
+}
+
+.job-card.state-pending {
+    border-left: 3px solid var(--yellow);
+}
+
+.job-state {
+    font-size: 0.7rem;
+    padding: 2px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.state-running .job-state {
+    background: var(--green);
+    color: #fff;
+}
+
+.state-done .job-state {
+    background: var(--cyan);
+    color: #fff;
+}
+
+.state-error .job-state {
+    background: var(--red);
+    color: #fff;
+}
+
+.state-cancelled .job-state {
+    background: var(--text-dim);
+    color: #fff;
+}
+
+.state-pending .job-state {
+    background: var(--yellow);
+    color: #000;
+}
+
+.job-info {
+    flex: 1;
+    min-width: 200px;
+}
+
+.job-title {
+    font-size: 0.85rem;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.job-meta {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+}
+
+.job-progress {
+    flex: 1;
+    min-width: 180px;
+}
+
+.progress-bar-wrap {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    margin: 4px 0;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: var(--green);
+    border-radius: 3px;
+    transition: width 0.5s;
+}
+
+.progress-text {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+}
+
+.job-actions {
+    flex-shrink: 0;
+}
+
+/* ---- disk info modal ---- */
+#info-modal {
+    border-color: var(--cyan);
+}
+
+.info-table {
+    width: 100%;
+    text-align: left;
+    border-collapse: collapse;
+    margin-top: 8px;
+}
+
+.info-table td {
+    padding: 6px 4px;
+    font-size: 0.9rem;
+}
+
+.info-table td:first-child {
+    color: var(--text-dim);
+    width: 70px;
+}
+
+@media (max-width: 600px) {
+    #sidebar {
+        display: none;
+    }
+
+    .disk-slot {
+        width: 110px;
+        height: 48px;
+    }
+}

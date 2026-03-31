@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>diskman-web</title>
+    <link rel="stylesheet" href="/app.css">
+</head>
+
+<body>
+    <header>
+        <h1>⬡ diskman-web</h1>
+        <span id="badge-dry" class="badge badge-dry" style="display:none">DRY-RUN</span>
+        <span id="badge-debug" class="badge badge-debug" style="display:none">DEBUG</span>
+        <span class="spacer"></span>
+        <span id="enclosure-badge" class="status-chip">Enclosure: -</span>
+        <span id="conn-badge" class="badge-conn reconnecting">Connecting...</span>
+    </header>
+
+    <main>
+        <section id="content">
+            <div class="content-header">
+                <div class="section-title">Disk Slots</div>
+                <div class="content-header-right">
+                    <div id="picker-wrap" class="picker-wrap">
+                        <label for="enclosure-picker">Enclosure</label>
+                        <select id="enclosure-picker"></select>
+                    </div>
+                </div>
+            </div>
+            <div id="disk-grid"></div>
+
+            <div id="op-panel" style="display:none">
+                <h2 id="op-title">Operation</h2>
+                <div class="op-step" id="op-src-step">
+                    <label>Source Slot</label>
+                    <span class="slot-display" id="op-src-val">-</span>
+                </div>
+                <div class="op-step" id="op-dst-step" style="display:none">
+                    <label>Destination Slot</label>
+                    <span class="slot-display" id="op-dst-val">-</span>
+                </div>
+                <div class="op-btns">
+                    <button class="btn-primary" id="btn-copy">COPY</button>
+                    <button class="btn-danger" id="btn-erase">ERASE</button>
+                    <button class="btn-ghost" id="btn-info-op">INFO</button>
+                    <button class="btn-ghost" id="btn-clear">CLEAR</button>
+                </div>
+            </div>
+
+            <div id="job-section">
+                <div class="section-title">Job Status</div>
+                <div id="job-list">
+                    <div style="color:var(--text-dim);font-size:0.85rem;">- No jobs -</div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Confirm modal -->
+    <div class="modal-overlay" id="confirm-overlay">
+        <div class="modal">
+            <h2 id="confirm-title">Confirm</h2>
+            <div class="action-line" id="confirm-action"></div>
+            <div>Enter the displayed code to continue</div>
+            <div class="code-display" id="confirm-code-display"></div>
+            <input type="text" id="confirm-input" maxlength="4" placeholder="----" autocomplete="off">
+            <div class="modal-btns">
+                <button class="btn-primary" id="confirm-ok">RUN</button>
+                <button class="btn-ghost" id="confirm-cancel">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cancel job modal -->
+    <div class="modal-overlay" id="cancel-overlay">
+        <div class="modal" id="cancel-modal">
+            <h2>Cancel Job</h2>
+            <div class="action-line" id="cancel-job-line"></div>
+            <div class="modal-btns">
+                <button class="btn-danger" id="cancel-yes">CANCEL JOB</button>
+                <button class="btn-ghost" id="cancel-no">BACK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Disk info modal -->
+    <div class="modal-overlay" id="info-overlay">
+        <div class="modal" id="info-modal">
+            <h2>Disk Information</h2>
+            <table class="info-table" id="info-table"></table>
+            <div class="modal-btns" style="margin-top:16px">
+                <button class="btn-ghost" id="info-close">CLOSE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enclosure setup modal (shown once when needsSetup=true) -->
+    <div class="modal-overlay show" id="setup-overlay" style="display:none">
+        <div class="modal">
+            <h2>Select Enclosure</h2>
+            <div style="margin-bottom:12px;color:var(--text-dim);font-size:0.9rem;">
+                Select the enclosure to use. Your choice will be saved to the config file.</div>
+            <select id="setup-picker"
+                style="width:100%;padding:8px;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:4px;font-size:1rem;margin-bottom:16px"></select>
+            <div class="modal-btns">
+                <button class="btn-primary" id="setup-ok">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+
+</html>
