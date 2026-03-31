@@ -83,6 +83,8 @@ func NewServer(cfg config.Config, configPath string, enclosureName string, dryRu
 		deviceExists:        make(map[string]bool),
 		sseClients:          make(map[chan []byte]struct{}),
 	}
+	// Initial device check
+	s.deviceExists = s.checkDeviceExists()
 	go s.processUpdates()
 	go s.periodicCheckDevices()
 	return s, nil

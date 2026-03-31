@@ -72,11 +72,9 @@
             try {
                 const r = await fetch('/api/config');
                 const newCfg = await r.json();
-                // Check if deviceExists changed
-                if (JSON.stringify(cfg.deviceExists) !== JSON.stringify(newCfg.deviceExists)) {
-                    cfg.deviceExists = newCfg.deviceExists;
-                    renderGrid();
-                }
+                // Update deviceExists and refresh grid if changed
+                cfg.deviceExists = newCfg.deviceExists || {};
+                renderGrid();
             } catch (_) { }
         }, 1000);
     }
@@ -147,15 +145,23 @@
         enc.grid.forEach(row => {
             row.forEach(slot => {
                 const path = devicePath(enc, slot);
-                const exists = !path || (cfg.deviceExists && cfg.deviceExists[path] !== false);
+                const exists = path && cfg.deviceExists && cfg.deviceExists[path] === true;
                 const busy = isBusy(path);
                 const isSrc = srcSlot === slot;
                 const isDst = dstSlot === slot;
+                const isJobSrc = state.activeJobs && state.activeJobs.some(j => {
+                    const op = j.op || (j.src === j.dst ? 'erase' : 'copy');
+                    return op === 'copy' && j.src === path;
+                });
+                const isJobErase = state.activeJobs && state.activeJobs.some(j => {
+                    const op = j.op || (j.src === j.dst ? 'erase' : 'copy');
+                    return op === 'erase' && (j.src === path || j.dst === path);
+                });
 
                 let cls = 'disk-slot';
                 if (!exists) cls += ' unavailable';
-                if (isSrc) cls += ' selected-src';
-                if (isDst) cls += ' selected-dst';
+                if (isSrc || isJobSrc) cls += ' selected-src';
+                if (isDst || isJobErase) cls += ' selected-dst';
                 if (busy) cls += ' busy';
 
                 const div = document.createElement('div');
@@ -196,8 +202,7 @@
     function onSlotClick(slot, path, busy) {
         if (isRendering || busy) return;
         // unavailableスロットは弾く（念のため二重チェック）
-        const enc = cfg.enclosures[selectedEnc];
-        const exists = !path || (cfg.deviceExists && cfg.deviceExists[path] !== false);
+        const exists = path && cfg.deviceExists && cfg.deviceExists[path] === true;
         if (!exists) return;
 
         const prevSrc = srcSlot;
@@ -233,6 +238,7 @@
         }
 
         document.getElementById('btn-copy').disabled = dstSlot === null;
+        document.getElementById('btn-erase').disabled = dstSlot !== null;
     }
 
     function renderJobList() {

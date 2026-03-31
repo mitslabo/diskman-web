@@ -7,7 +7,7 @@
     --yellow: #f9a825;
     --cyan: #0277bd;
     --red: #d32f2f;
-    --text: #212121;
+    --text: #000000;
     --text-dim: #757575;
     --slot-w: 140px;
     --slot-h: 52px;
@@ -250,8 +250,9 @@ select {
 }
 
 .slot-label {
-    font-size: 0.7rem;
-    color: var(--text-dim);
+    font-size: 0.9rem;
+    color: #000000;
+    font-weight: bold;
 }
 
 .slot-name {
@@ -263,8 +264,8 @@ select {
     position: absolute;
     top: 4px;
     right: 6px;
-    font-size: 0.65rem;
-    padding: 1px 4px;
+    font-size: 0.75rem;
+    padding: 2px 5px;
     border-radius: 3px;
     background: var(--accent);
     color: #fff;
