@@ -1,0 +1,85 @@
+name: Build Architecture Binaries
+
+on:
+  push:
+    branches: ["master"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install Task
+        run: |
+          go install github.com/go-task/task/v3/cmd/task@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Build all binaries with Taskfile
+        run: task build-all
+
+      - name: Upload amd64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: diskman-web-amd64
+          path: build/diskman-web.amd64
+          if-no-files-found: error
+
+      - name: Upload arm64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: diskman-web-arm64
+          path: build/diskman-web.arm64
+          if-no-files-found: error
+
+      - name: Upload arm artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: diskman-web-arm
+          path: build/diskman-web.arm
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download amd64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: diskman-web-amd64
+          path: build
+
+      - name: Download arm64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: diskman-web-arm64
+          path: build
+
+      - name: Download arm artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: diskman-web-arm
+          path: build
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/diskman-web.amd64
+            build/diskman-web.arm64
+            build/diskman-web.arm
+          generate_release_notes: true

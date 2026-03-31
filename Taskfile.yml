@@ -1,0 +1,42 @@
+version: '3'
+
+vars:
+  BINARY_NAME: diskman-web
+  OUT_DIR: build
+
+tasks:
+  default:
+    desc: Build binaries for amd64, arm64, and arm
+    cmds:
+      - task: build-all
+
+  clean:
+    desc: Remove build outputs
+    cmds:
+      - rm -rf {{.OUT_DIR}}
+
+  build-all:
+    desc: Build linux binaries for amd64, arm64, and arm
+    cmds:
+      - mkdir -p {{.OUT_DIR}}
+      - GOOS=linux GOARCH=amd64 go build -o {{.OUT_DIR}}/{{.BINARY_NAME}}.amd64 .
+      - GOOS=linux GOARCH=arm64 go build -o {{.OUT_DIR}}/{{.BINARY_NAME}}.arm64 .
+      - GOOS=linux GOARCH=arm GOARM=7 go build -o {{.OUT_DIR}}/{{.BINARY_NAME}}.arm .
+
+  build-amd64:
+    desc: Build linux amd64 binary
+    cmds:
+      - mkdir -p {{.OUT_DIR}}
+      - GOOS=linux GOARCH=amd64 go build -o {{.OUT_DIR}}/{{.BINARY_NAME}}.amd64 .
+
+  build-arm64:
+    desc: Build linux arm64 binary
+    cmds:
+      - mkdir -p {{.OUT_DIR}}
+      - GOOS=linux GOARCH=arm64 go build -o {{.OUT_DIR}}/{{.BINARY_NAME}}.arm64 .
+
+  build-arm:
+    desc: Build linux arm binary (GOARM=7)
+    cmds:
+      - mkdir -p {{.OUT_DIR}}
+      - GOOS=linux GOARCH=arm GOARM=7 go build -o {{.OUT_DIR}}/{{.BINARY_NAME}}.arm .
