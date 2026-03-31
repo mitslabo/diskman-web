@@ -11,6 +11,7 @@
     let pendingCancelId = null;
     let es = null;
     let reconnectTimer = null;
+    let configPollTimer = null;
     const RECONNECT_DELAY = 3000;
 
     // ---- Init ----
@@ -29,6 +30,7 @@
             console.error('config load failed', e);
         }
         connectSSE();
+        startConfigPolling();
     }
 
     // ---- SSE ----
@@ -62,6 +64,21 @@
         const el = document.getElementById('conn-badge');
         el.className = 'badge-conn ' + cls;
         el.textContent = text;
+    }
+
+    function startConfigPolling() {
+        if (configPollTimer) clearInterval(configPollTimer);
+        configPollTimer = setInterval(async () => {
+            try {
+                const r = await fetch('/api/config');
+                const newCfg = await r.json();
+                // Check if deviceExists changed
+                if (JSON.stringify(cfg.deviceExists) !== JSON.stringify(newCfg.deviceExists)) {
+                    cfg.deviceExists = newCfg.deviceExists;
+                    renderGrid();
+                }
+            } catch (_) { }
+        }, 1000);
     }
 
     // ---- Render ----
@@ -130,11 +147,13 @@
         enc.grid.forEach(row => {
             row.forEach(slot => {
                 const path = devicePath(enc, slot);
+                const exists = !path || (cfg.deviceExists && cfg.deviceExists[path] !== false);
                 const busy = isBusy(path);
                 const isSrc = srcSlot === slot;
                 const isDst = dstSlot === slot;
 
                 let cls = 'disk-slot';
+                if (!exists) cls += ' unavailable';
                 if (isSrc) cls += ' selected-src';
                 if (isDst) cls += ' selected-dst';
                 if (busy) cls += ' busy';
@@ -150,8 +169,10 @@
         ${statusBadge ? `<span class="slot-status">${statusBadge}</span>` : ''}
         <span class="slot-label">Slot${String(slot).padStart(2, '0')}</span>
       `;
-                div.addEventListener('click', () => onSlotClick(slot, path, busy));
-                div.addEventListener('contextmenu', (e) => { e.preventDefault(); showDiskInfo(slot); });
+                if (exists) {
+                    div.addEventListener('click', () => onSlotClick(slot, path, busy));
+                    div.addEventListener('contextmenu', (e) => { e.preventDefault(); showDiskInfo(slot); });
+                }
                 grid.appendChild(div);
             });
         });
@@ -174,6 +195,10 @@
 
     function onSlotClick(slot, path, busy) {
         if (isRendering || busy) return;
+        // unavailableスロットは弾く（念のため二重チェック）
+        const enc = cfg.enclosures[selectedEnc];
+        const exists = !path || (cfg.deviceExists && cfg.deviceExists[path] !== false);
+        if (!exists) return;
 
         const prevSrc = srcSlot;
         const prevDst = dstSlot;

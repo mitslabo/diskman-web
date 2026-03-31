@@ -237,6 +237,18 @@ select {
     opacity: 0.5;
 }
 
+/* Device not present: grayed out, not interactive */
+.disk-slot.unavailable {
+    cursor: default;
+    opacity: 0.35;
+    border-style: dashed;
+    color: var(--text-dim);
+}
+
+.disk-slot.unavailable:hover {
+    border-color: var(--border);
+}
+
 .slot-label {
     font-size: 0.7rem;
     color: var(--text-dim);

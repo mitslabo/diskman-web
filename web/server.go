@@ -35,6 +35,7 @@ type Server struct {
 	jobOrder   []string
 	jobCancels map[string]context.CancelFunc
 	updates    chan runner.Update
+	deviceExists map[string]bool // updated every 1 second
 
 	// SSE broadcast
 	sseClients map[chan []byte]struct{}
@@ -79,9 +80,11 @@ func NewServer(cfg config.Config, configPath string, enclosureName string, dryRu
 		jobs:                make(map[string]*model.Job),
 		jobCancels:          make(map[string]context.CancelFunc),
 		updates:             make(chan runner.Update, 256),
+		deviceExists:        make(map[string]bool),
 		sseClients:          make(map[chan []byte]struct{}),
 	}
 	go s.processUpdates()
+	go s.periodicCheckDevices()
 	return s, nil
 }
 
@@ -96,6 +99,38 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/events", s.handleSSE)
 	mux.HandleFunc("POST /api/enclosure", s.handleSetEnclosure)
 	return mux
+}
+
+func (s *Server) checkDeviceExists() map[string]bool {
+	exists := make(map[string]bool)
+	for _, enc := range s.cfg.Enclosures {
+		for _, path := range enc.Devices {
+			if path == "" {
+				continue
+			}
+			if _, seen := exists[path]; seen {
+				continue
+			}
+			if s.debug {
+				exists[path] = true
+				continue
+			}
+			_, err := os.Stat(path)
+			exists[path] = err == nil
+		}
+	}
+	return exists
+}
+
+func (s *Server) periodicCheckDevices() {
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+	for range ticker.C {
+		new := s.checkDeviceExists()
+		s.mu.Lock()
+		s.deviceExists = new
+		s.mu.Unlock()
+	}
 }
 
 // ----- SSE broadcast -----
@@ -199,12 +234,19 @@ type ConfigDTO struct {
 	ActiveEnclosureIdx  int                `json:"activeEnclosureIdx"`
 	ActiveEnclosureName string             `json:"activeEnclosureName"`
 	NeedsSetup          bool               `json:"needsSetup"`
+	DeviceExists        map[string]bool    `json:"deviceExists"`
 }
 
 // ----- HTTP handlers -----
 
 func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	s.mu.RLock()
+	deviceExists := make(map[string]bool)
+	for k, v := range s.deviceExists {
+		deviceExists[k] = v
+	}
+	s.mu.RUnlock()
 	_ = json.NewEncoder(w).Encode(ConfigDTO{
 		Addr:                s.cfg.Addr,
 		DryRun:              s.dryRun,
@@ -213,6 +255,7 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 		ActiveEnclosureIdx:  s.activeEnclosureIdx,
 		ActiveEnclosureName: s.activeEnclosureName,
 		NeedsSetup:          s.needsSetup,
+		DeviceExists:        deviceExists,
 	})
 }
 
