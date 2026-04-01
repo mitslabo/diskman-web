@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -248,8 +249,10 @@ func readEraseProgress(r io.Reader, jobID string, base model.Progress, totalByte
 
 func parseDdProgress(line string, prev model.Progress, totalBytes int64) model.Progress {
 	p := prev
+	written := int64(-1)
 	if m := reDdBytes.FindStringSubmatch(line); len(m) == 2 {
-		if written, err := strconv.ParseInt(m[1], 10, 64); err == nil {
+		if w, err := strconv.ParseInt(m[1], 10, 64); err == nil {
+			written = w
 			p.Rescued = formatBytes(written)
 			if totalBytes > 0 {
 				p.Percent = float64(written) / float64(totalBytes) * 100
@@ -262,7 +265,74 @@ func parseDdProgress(line string, prev model.Progress, totalBytes int64) model.P
 	if m := reDdRate.FindStringSubmatch(line); len(m) == 2 {
 		p.Rate = strings.TrimSpace(m[1])
 	}
+	if totalBytes > 0 && written >= 0 {
+		if written >= totalBytes {
+			p.Remaining = "0s"
+		} else if eta := estimateRemaining(totalBytes, written, p.Rate); eta != "" {
+			p.Remaining = eta
+		}
+	}
 	return p
+}
+
+func estimateRemaining(totalBytes, writtenBytes int64, rateStr string) string {
+	if totalBytes <= 0 || writtenBytes >= totalBytes {
+		return "0s"
+	}
+	bps, ok := parseRateBytesPerSec(rateStr)
+	if !ok || bps <= 0 {
+		return ""
+	}
+	remainingBytes := totalBytes - writtenBytes
+	seconds := int64(math.Ceil(float64(remainingBytes) / bps))
+	if seconds < 0 {
+		seconds = 0
+	}
+	return formatDuration(seconds)
+}
+
+func parseRateBytesPerSec(rateStr string) (float64, bool) {
+	parts := strings.Fields(rateStr)
+	if len(parts) != 2 {
+		return 0, false
+	}
+	v, err := strconv.ParseFloat(parts[0], 64)
+	if err != nil {
+		return 0, false
+	}
+	unit := strings.TrimSuffix(parts[1], "/s")
+	mult, ok := map[string]float64{
+		"B":   1,
+		"kB":  1e3,
+		"KB":  1e3,
+		"MB":  1e6,
+		"GB":  1e9,
+		"TB":  1e12,
+		"KiB": 1024,
+		"MiB": 1024 * 1024,
+		"GiB": 1024 * 1024 * 1024,
+		"TiB": 1024 * 1024 * 1024 * 1024,
+	}[unit]
+	if !ok {
+		return 0, false
+	}
+	return v * mult, true
+}
+
+func formatDuration(seconds int64) string {
+	if seconds <= 0 {
+		return "0s"
+	}
+	h := seconds / 3600
+	m := (seconds % 3600) / 60
+	s := seconds % 60
+	if h > 0 {
+		return fmt.Sprintf("%dh %dm %ds", h, m, s)
+	}
+	if m > 0 {
+		return fmt.Sprintf("%dm %ds", m, s)
+	}
+	return fmt.Sprintf("%ds", s)
 }
 
 func formatBytes(b int64) string {

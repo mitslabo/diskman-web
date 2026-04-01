@@ -378,7 +378,7 @@
       ${isActive ? `<div class="job-progress">
         ${op === 'erase' ? `
           <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct.toFixed(1)}%"></div></div>
-          <div class="progress-text">${pct.toFixed(1)}% · ${rate} · Written: ${rescued}</div>
+                    <div class="progress-text">${pct.toFixed(1)}% · ${rate} · Remain: ${remain} · Written: ${rescued}</div>
         ` : `
           <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct.toFixed(1)}%"></div></div>
           <div class="progress-text">Pass ${pass} · ${pct.toFixed(1)}% · ${rate} · Remain: ${remain}</div>

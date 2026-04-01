@@ -10,7 +10,7 @@ var (
 	rePct      = regexp.MustCompile(`pct rescued:\s+([\d.]+)%`)
 	reRescued  = regexp.MustCompile(`rescued:\s+([^,]+)`)
 	reRate     = regexp.MustCompile(`current rate:\s+([^,]+)`)
-	reRemain   = regexp.MustCompile(`remaining time:\s+(\S+)`)
+	reRemain   = regexp.MustCompile(`remaining time:\s+(.+?)\s*$`)
 	reBadAreas = regexp.MustCompile(`bad areas:\s+(\d+)`)
 	reReadErr  = regexp.MustCompile(`read errors:\s+(\d+)`)
 )
