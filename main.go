@@ -6,8 +6,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"diskman-web/config"
@@ -17,42 +19,49 @@ import (
 // daemonize detaches the process from its controlling terminal.
 // After calling, the process runs in the background as a daemon.
 func daemonize() error {
-	// Create a new session and become session leader
-	// This disconnects from the controlling terminal
-	sid, err := syscall.Setsid()
-	if err != nil {
-		return fmt.Errorf("setsid failed: %w", err)
-	}
-	if sid == -1 {
-		return fmt.Errorf("setsid failed: sid is -1")
-	}
-
-	// Change working directory to root to avoid holding any directory
-	if err := os.Chdir("/"); err != nil {
-		return fmt.Errorf("chdir failed: %w", err)
+	// Rebuild args for child without daemon flags to avoid recursion.
+	childArgs := make([]string, 0, len(os.Args)-1)
+	for i := 1; i < len(os.Args); i++ {
+		a := os.Args[i]
+		if a == "--daemon" || a == "-daemon" {
+			continue
+		}
+		if strings.HasPrefix(a, "--daemon=") || strings.HasPrefix(a, "-daemon=") {
+			continue
+		}
+		childArgs = append(childArgs, a)
 	}
 
-	// Set umask to 0
-	syscall.Umask(0)
-
-	// Redirect standard file descriptors to /dev/null
-	null, err := os.Open("/dev/null")
+	devNull, err := os.OpenFile("/dev/null", os.O_RDWR, 0)
 	if err != nil {
 		return fmt.Errorf("open /dev/null failed: %w", err)
 	}
-	defer null.Close()
+	defer devNull.Close()
 
-	// Redirect stdin, stdout, stderr to /dev/null
-	if err := syscall.Dup2(int(null.Fd()), 0); err != nil {
-		return fmt.Errorf("dup2 stdin failed: %w", err)
-	}
-	if err := syscall.Dup2(int(null.Fd()), 1); err != nil {
-		return fmt.Errorf("dup2 stdout failed: %w", err)
-	}
-	if err := syscall.Dup2(int(null.Fd()), 2); err != nil {
-		return fmt.Errorf("dup2 stderr failed: %w", err)
+	exePath, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("resolve executable path failed: %w", err)
 	}
 
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("resolve cwd failed: %w", err)
+	}
+
+	cmd := exec.Command(exePath, childArgs...)
+	cmd.Dir = cwd
+	cmd.Env = os.Environ()
+	cmd.Stdin = devNull
+	cmd.Stdout = devNull
+	cmd.Stderr = devNull
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
+
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("start detached child failed: %w", err)
+	}
+
+	// Parent exits immediately; child continues as daemon.
+	os.Exit(0)
 	return nil
 }
 

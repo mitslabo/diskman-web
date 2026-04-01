@@ -14,17 +14,26 @@ A web-based disk management UI for copying and erasing drives in multi-bay enclo
 
 ## Requirements
 
-- Go 1.22+
 - Linux (uses `ddrescue`, `dd`, SIGUSR1)
 - [`ddrescue`](https://www.gnu.org/software/ddrescue/) for copy operations
 - `dd` (GNU coreutils) for erase operations
 
 ## Installation
 
+Download the prebuilt binary from the GitHub Releases page and use it directly.
+
+1. Download the binary for your architecture from Releases (for example: `diskman-web.amd64`, `diskman-web.arm64`, `diskman-web.arm`).
+2. Place it in any directory (for example: `/usr/local/bin` or your project directory).
+3. Make it executable:
+
 ```sh
-git clone https://github.com/yourname/diskman-web
-cd diskman-web
-CGO_ENABLED=0 go build -o diskman-web .
+chmod +x ./diskman-web.amd64
+```
+
+4. Run it:
+
+```sh
+./diskman-web.amd64
 ```
 
 ## Usage
@@ -36,6 +45,7 @@ Flags:
   -config    <path>   Path to config file (default: platform config dir)
   -enclosure <name>   Active enclosure name (overrides config activeEnclosure)
   -addr      <addr>   Listen address, e.g. :8080 (overrides config)
+  -daemon             Run as background daemon process (detach from terminal)
 ```
 
 On first run, a default config file is created at:
@@ -69,12 +79,12 @@ Then open `http://localhost:8080` in a browser.
       "cols": 1,
       "grid": [[1], [2], [3], [4], [5], [6]],
       "devices": {
-        "1": "/dev/sda",
-        "2": "/dev/sdb",
-        "3": "/dev/sdc",
-        "4": "/dev/sdd",
-        "5": "/dev/sde",
-        "6": "/dev/sdf"
+        "1": "/dev/disk1",
+        "2": "/dev/disk2",
+        "3": "/dev/disk3",
+        "4": "/dev/disk4",
+        "5": "/dev/disk5",
+        "6": "/dev/disk6"
       }
     }
   ]
@@ -98,6 +108,39 @@ If `activeEnclosure` is not set and `--enclosure` is not given, a selection popu
 1. `--enclosure` CLI flag
 2. `activeEnclosure` in config file
 3. Browser popup (saves selection back to config)
+
+## Build From Source
+
+Use this only when you need to build binaries yourself.
+
+### Install task runner
+
+If you do not have `task` installed yet:
+
+```sh
+go install github.com/go-task/task/v3/cmd/task@latest
+```
+
+### Build Linux amd64 binary
+
+```sh
+task build-amd64
+```
+
+Output: `build/diskman-web.amd64`
+
+### Build Linux multi-arch binaries
+
+```sh
+task build-all
+```
+
+Outputs:
+- `build/diskman-web.amd64`
+- `build/diskman-web.arm64`
+- `build/diskman-web.arm`
+
+Build tasks in `Taskfile.yml` already include required options such as `CGO_ENABLED=0`, `GOOS=linux`, `GOARCH`, and `GOARM=7`.
 
 ## License
 
