@@ -12,6 +12,7 @@
     let es = null;
     let reconnectTimer = null;
     let configPollTimer = null;
+    let pendingSlotClicks = [];
     const RECONNECT_DELAY = 3000;
 
     // ---- Init ----
@@ -72,11 +73,14 @@
             try {
                 const r = await fetch('/api/config');
                 const newCfg = await r.json();
-                // Update deviceExists and refresh grid if changed
-                cfg.deviceExists = newCfg.deviceExists || {};
-                renderGrid();
+                const prevExists = cfg.deviceExists || {};
+                const nextExists = newCfg.deviceExists || {};
+                if (!sameDeviceExists(prevExists, nextExists)) {
+                    cfg.deviceExists = nextExists;
+                    renderGrid();
+                }
             } catch (_) { }
-        }, 1000);
+        }, 3000);
     }
 
     // ---- Render ----
@@ -110,6 +114,7 @@
             renderJobList();
         } finally {
             isRendering = false;
+            processQueuedSlotClicks();
         }
     }
 
@@ -140,10 +145,18 @@
         const enc = cfg.enclosures[selectedEnc];
         const grid = document.getElementById('disk-grid');
         grid.style.gridTemplateColumns = `repeat(${enc.cols}, var(--slot-w))`;
-        grid.innerHTML = '';
+        const existing = new Map();
+        Array.from(grid.children).forEach((el) => {
+            if (el.dataset && el.dataset.slot) {
+                existing.set(el.dataset.slot, el);
+            }
+        });
+
+        const seen = new Set();
 
         enc.grid.forEach(row => {
             row.forEach(slot => {
+                const slotKey = String(slot);
                 const path = devicePath(enc, slot);
                 const exists = path && cfg.deviceExists && cfg.deviceExists[path] === true;
                 const busy = isBusy(path);
@@ -164,9 +177,24 @@
                 if (isDst || isJobErase) cls += ' selected-dst';
                 if (busy) cls += ' busy';
 
-                const div = document.createElement('div');
+                let div = existing.get(slotKey);
+                if (!div) {
+                    div = document.createElement('div');
+                    div.dataset.slot = slotKey;
+                    div.addEventListener('click', () => onSlotClick(slot));
+                    div.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        const currentPath = devicePath(cfg.enclosures[selectedEnc], slot);
+                        const currentExists = currentPath && cfg.deviceExists && cfg.deviceExists[currentPath] === true;
+                        if (currentExists) showDiskInfo(slot);
+                    });
+                    grid.appendChild(div);
+                }
+
                 div.className = cls;
-                div.dataset.slot = slot;
+                div.dataset.slot = slotKey;
+                div.dataset.path = path;
+                div.dataset.exists = exists ? '1' : '0';
 
                 const usageLabel = getBusyLabel(path);
                 const statusBadge = isSrc ? 'S' : isDst ? 'D' : (usageLabel || '');
@@ -175,12 +203,14 @@
         ${statusBadge ? `<span class="slot-status">${statusBadge}</span>` : ''}
         <span class="slot-label">Slot${String(slot).padStart(2, '0')}</span>
       `;
-                if (exists) {
-                    div.addEventListener('click', () => onSlotClick(slot, path, busy));
-                    div.addEventListener('contextmenu', (e) => { e.preventDefault(); showDiskInfo(slot); });
-                }
-                grid.appendChild(div);
+                seen.add(slotKey);
             });
+        });
+
+        Array.from(grid.children).forEach((el) => {
+            if (!seen.has(el.dataset.slot)) {
+                el.remove();
+            }
         });
     }
 
@@ -199,8 +229,14 @@
         return '';
     }
 
-    function onSlotClick(slot, path, busy) {
-        if (isRendering || busy) return;
+    function onSlotClick(slot) {
+        if (isRendering) {
+            pendingSlotClicks.push(slot);
+            return;
+        }
+        const path = devicePath(cfg.enclosures[selectedEnc], slot);
+        const busy = isBusy(path);
+        if (busy) return;
         // unavailableスロットは弾く（念のため二重チェック）
         const exists = path && cfg.deviceExists && cfg.deviceExists[path] === true;
         if (!exists) return;
@@ -219,6 +255,19 @@
 
         if (srcSlot !== prevSrc || dstSlot !== prevDst) {
             renderAll();
+        }
+    }
+
+    function processQueuedSlotClicks() {
+        if (pendingSlotClicks.length === 0) return;
+        const queue = pendingSlotClicks;
+        pendingSlotClicks = [];
+        for (const slot of queue) {
+            if (isRendering) {
+                pendingSlotClicks.push(slot);
+                continue;
+            }
+            onSlotClick(slot);
         }
     }
 
@@ -248,9 +297,18 @@
             list.innerHTML = '<div style="color:var(--text-dim);font-size:0.85rem;">- No jobs -</div>';
             return;
         }
-        list.innerHTML = '';
+        const existingCards = new Map();
+        Array.from(list.querySelectorAll('.job-card[data-job-id]')).forEach((card) => {
+            existingCards.set(card.dataset.jobId, card);
+        });
+        const seen = new Set();
+
         jobs.forEach(j => {
-            const card = document.createElement('div');
+            let card = existingCards.get(j.id);
+            if (!card) {
+                card = document.createElement('div');
+                card.dataset.jobId = j.id;
+            }
             card.className = `job-card state-${j.state}`;
 
             const op = j.op || 'copy';
@@ -290,9 +348,17 @@
 
             const cancelBtn = card.querySelector('[data-id]');
             if (cancelBtn) {
-                cancelBtn.addEventListener('click', () => showCancelConfirm(j));
+                cancelBtn.onclick = () => showCancelConfirm(j);
             }
+
+            seen.add(j.id);
             list.appendChild(card);
+        });
+
+        Array.from(list.querySelectorAll('.job-card[data-job-id]')).forEach((card) => {
+            if (!seen.has(card.dataset.jobId)) {
+                card.remove();
+            }
         });
     }
 
@@ -320,6 +386,16 @@
             return cfg.enclosures[selectedEnc].name;
         }
         return cfg && cfg.activeEnclosureName ? cfg.activeEnclosureName : '-';
+    }
+
+    function sameDeviceExists(a, b) {
+        const aKeys = Object.keys(a);
+        const bKeys = Object.keys(b);
+        if (aKeys.length !== bKeys.length) return false;
+        for (const k of aKeys) {
+            if (a[k] !== b[k]) return false;
+        }
+        return true;
     }
 
     function slotLabel(job, path) {
