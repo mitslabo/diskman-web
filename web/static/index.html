@@ -25,18 +25,11 @@
 
             <div id="op-panel">
                 <h2 id="op-title">Operation</h2>
-                <div class="op-step" id="op-src-step">
-                    <label>Source Slot</label>
-                    <span class="slot-display" id="op-src-val">-</span>
-                </div>
-                <div class="op-step" id="op-dst-step">
-                    <label>Destination Slot</label>
-                    <span class="slot-display" id="op-dst-val">-</span>
-                </div>
+                <div id="slot-info-empty" class="no-jobs"></div>
+                <div id="slot-info-list" class="slot-info-list" hidden></div>
                 <div class="op-btns">
                     <button class="btn-primary" id="btn-copy">COPY</button>
                     <button class="btn-danger" id="btn-erase">ERASE</button>
-                    <button class="btn-ghost" id="btn-info-op">INFO</button>
                     <button class="btn-ghost" id="btn-clear">CLEAR</button>
                 </div>
             </div>
@@ -73,17 +66,6 @@
             <div class="modal-btns">
                 <button class="btn-danger" id="cancel-yes">CANCEL JOB</button>
                 <button class="btn-ghost" id="cancel-no">BACK</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Disk info modal -->
-    <div class="modal-overlay" id="info-overlay">
-        <div class="modal" id="info-modal">
-            <h2>Disk Information</h2>
-            <table class="info-table" id="info-table"></table>
-            <div class="modal-btns modal-btns-spaced">
-                <button class="btn-ghost" id="info-close">CLOSE</button>
             </div>
         </div>
     </div>

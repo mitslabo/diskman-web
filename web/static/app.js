@@ -9,6 +9,8 @@
     let dstSlot = null;
     let pendingOp = null; // { op, code }
     let pendingCancelId = null;
+    let selectedInfoSlots = [];
+    let selectedInfoReqId = 0;
     let es = null;
     let reconnectTimer = null;
     let configPollTimer = null;
@@ -104,6 +106,7 @@
             renderBanner();
             renderGrid();
             renderOpPanel();
+            renderSelectedDiskInfo();
             renderJobList();
         } finally {
             isRendering = false;
@@ -163,12 +166,6 @@
                     div = document.createElement('div');
                     div.dataset.slot = slotKey;
                     div.addEventListener('click', () => onSlotClick(slot));
-                    div.addEventListener('contextmenu', (e) => {
-                        e.preventDefault();
-                        const currentPath = devicePath(cfg.enclosures[selectedEnc], slot);
-                        const currentExists = currentPath && cfg.deviceExists && cfg.deviceExists[currentPath] === true;
-                        if (currentExists) showDiskInfo(slot);
-                    });
                     grid.appendChild(div);
                 }
 
@@ -224,6 +221,7 @@
 
         const prevSrc = srcSlot;
         const prevDst = dstSlot;
+        const prevInfoSlotsKey = selectedInfoSlots.join(',');
 
         if (srcSlot === null) {
             srcSlot = slot;
@@ -234,9 +232,21 @@
             dstSlot = slot;
         }
 
+        selectedInfoSlots = currentSelectedSlots();
+
         if (srcSlot !== prevSrc || dstSlot !== prevDst) {
             renderAll();
         }
+        if (selectedInfoSlots.join(',') !== prevInfoSlotsKey) {
+            loadSelectedDiskInfo();
+        }
+    }
+
+    function currentSelectedSlots() {
+        const slots = [];
+        if (srcSlot !== null) slots.push(srcSlot);
+        if (dstSlot !== null && dstSlot !== srcSlot) slots.push(dstSlot);
+        return slots;
     }
 
     function processQueuedSlotClicks() {
@@ -257,18 +267,68 @@
         if (srcSlot === null) { panel.style.display = 'none'; return; }
         panel.style.display = 'block';
 
-        document.getElementById('op-src-val').textContent = `Slot${String(srcSlot).padStart(2, '0')}`;
-
-        const dstStep = document.getElementById('op-dst-step');
-        if (dstSlot !== null) {
-            dstStep.style.display = 'block';
-            document.getElementById('op-dst-val').textContent = `Slot${String(dstSlot).padStart(2, '0')}`;
-        } else {
-            dstStep.style.display = 'none';
-        }
-
         document.getElementById('btn-copy').disabled = dstSlot === null;
         document.getElementById('btn-erase').disabled = dstSlot !== null;
+    }
+
+    function renderSelectedDiskInfo() {
+        if (selectedInfoSlots.length === 0) {
+            setSelectedInfoMessage('');
+        }
+    }
+
+    function setSelectedInfoMessage(text, isError = false) {
+        const empty = document.getElementById('slot-info-empty');
+        const list = document.getElementById('slot-info-list');
+        empty.textContent = text;
+        empty.className = isError ? 'td-error' : 'no-jobs';
+        list.hidden = true;
+        list.innerHTML = '';
+    }
+
+    function renderSelectedInfoList(items) {
+        const empty = document.getElementById('slot-info-empty');
+        const list = document.getElementById('slot-info-list');
+        empty.textContent = '';
+        empty.className = 'no-jobs';
+        list.hidden = false;
+        list.innerHTML = items.map(({ slot, info }) => `
+      <div class="slot-info-card">
+        <div class="slot-info-card-title">
+          <span>Slot${String(slot).padStart(2, '0')}</span>
+          <span class="slot-info-card-size">${info.size || '-'}</span>
+        </div>
+        <table class="info-table">
+          <tr><td>Device</td><td>${info.device || '-'}</td></tr>
+                    <tr><td>Model</td><td>${info.model || '-'}</td></tr>
+                    <tr><td>Serial</td><td>${info.serial || '-'}</td></tr>
+        </table>
+      </div>
+    `).join('');
+    }
+
+    async function loadSelectedDiskInfo() {
+        if (selectedInfoSlots.length === 0) {
+            setSelectedInfoMessage('Select a slot to show disk information.');
+            return;
+        }
+
+        const reqId = ++selectedInfoReqId;
+        setSelectedInfoMessage('Loading disk information...');
+        try {
+            const slots = [...selectedInfoSlots];
+            const results = await Promise.all(slots.map(async (slot) => {
+                const r = await fetch(`/api/diskinfo?enc=${selectedEnc}&slot=${slot}`);
+                if (!r.ok) throw new Error(await r.text());
+                const info = await r.json();
+                return { slot, info };
+            }));
+            if (reqId !== selectedInfoReqId) return;
+            renderSelectedInfoList(results);
+        } catch (e) {
+            if (reqId !== selectedInfoReqId) return;
+            setSelectedInfoMessage(`Failed to load: ${e}`, true);
+        }
     }
 
     function renderJobList() {
@@ -413,12 +473,9 @@
         showConfirm('erase', `ERASE Slot${String(srcSlot).padStart(2, '0')}`);
     });
 
-    document.getElementById('btn-info-op').addEventListener('click', () => {
-        if (srcSlot !== null) showDiskInfo(srcSlot);
-    });
-
     document.getElementById('btn-clear').addEventListener('click', () => {
         srcSlot = null; dstSlot = null;
+        selectedInfoSlots = [];
         renderAll();
     });
 
@@ -475,6 +532,7 @@
                 return;
             }
             srcSlot = null; dstSlot = null;
+            selectedInfoSlots = [];
             renderAll();
         } catch (e) {
             alert('Network error: ' + e);
@@ -512,31 +570,8 @@
         pendingCancelId = null;
     });
 
-    // ---- Disk info modal ----
-    async function showDiskInfo(slot) {
-        const table = document.getElementById('info-table');
-        table.innerHTML = '<tr><td colspan="2" class="td-muted">Loading...</td></tr>';
-        document.getElementById('info-overlay').classList.add('show');
-        try {
-            const r = await fetch(`/api/diskinfo?enc=${selectedEnc}&slot=${slot}`);
-            const info = await r.json();
-            table.innerHTML = `
-      <tr><td>Device</td><td>${info.device}</td></tr>
-      <tr><td>Slot</td><td>${info.slot}</td></tr>
-      <tr><td>Model</td><td>${info.model}</td></tr>
-      <tr><td>Serial</td><td>${info.serial}</td></tr>
-      <tr><td>Size</td><td>${info.size}</td></tr>
-    `;
-        } catch (e) {
-            table.innerHTML = `<tr><td colspan="2" class="td-error">Failed to load: ${e}</td></tr>`;
-        }
-    }
-    document.getElementById('info-close').addEventListener('click', () => {
-        document.getElementById('info-overlay').classList.remove('show');
-    });
-
     // Click outside modal to close
-    ['confirm-overlay', 'cancel-overlay', 'info-overlay'].forEach(id => {
+    ['confirm-overlay', 'cancel-overlay'].forEach(id => {
         document.getElementById(id).addEventListener('click', (e) => {
             if (e.target.id === id) e.target.classList.remove('show');
         });

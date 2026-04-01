@@ -132,6 +132,43 @@ select {
     margin-bottom: 24px;
 }
 
+
+
+.slot-info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.slot-info-card {
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #fff;
+}
+
+.slot-info-card-title {
+    display: flex;
+    justify-content: flex-start;
+    gap: 8px;
+    align-items: baseline;
+    margin-bottom: 6px;
+    font-size: 0.8rem;
+    color: var(--cyan);
+    font-weight: bold;
+}
+
+.slot-info-card-size {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    font-weight: normal;
+}
+
+.slot-info-card .info-table {
+    margin-top: 0;
+}
+
 .disk-slot {
     position: relative;
     display: flex;
@@ -220,7 +257,6 @@ select {
 
 #op-panel {
     display: none;
-    max-width: 500px;
     margin-bottom: 24px;
     padding: 16px;
     border: 1px solid var(--border);
@@ -232,21 +268,6 @@ select {
     margin-bottom: 12px;
     font-size: 0.9rem;
     color: var(--cyan);
-}
-
-.op-step {
-    margin-bottom: 12px;
-}
-
-#op-dst-step {
-    display: none;
-}
-
-.op-step label {
-    display: block;
-    margin-bottom: 4px;
-    font-size: 0.8rem;
-    color: var(--text-dim);
 }
 
 .slot-display {
@@ -523,10 +544,6 @@ button:disabled {
     transition: width 0.5s;
 }
 
-#info-modal {
-    border-color: var(--cyan);
-}
-
 .info-table {
     width: 100%;
     margin-top: 8px;
@@ -542,6 +559,10 @@ button:disabled {
 .info-table td:first-child {
     width: 70px;
     color: var(--text-dim);
+}
+
+.info-table td.td-muted {
+    padding-left: 16px;
 }
 
 .text-danger,
