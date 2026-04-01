@@ -37,6 +37,7 @@ type Job struct {
 	Progress  Progress `json:"progress"`
 	ErrMsg    string   `json:"errMsg"`
 	CreatedAt time.Time `json:"createdAt"`
+	EndedAt   *time.Time `json:"endedAt,omitempty"`
 }
 
 func NewJobID() string {

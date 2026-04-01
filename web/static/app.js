@@ -15,6 +15,8 @@
     let reconnectTimer = null;
     let configPollTimer = null;
     let pendingSlotClicks = [];
+    let serverNowBaseMs = null;
+    let clientNowBaseMs = null;
     const RECONNECT_DELAY = 3000;
 
     // ---- Init ----
@@ -51,6 +53,11 @@
             try {
                 const s = JSON.parse(e.data);
                 state = s;
+                const serverMs = s && s.serverNow ? new Date(s.serverNow).getTime() : NaN;
+                if (Number.isFinite(serverMs)) {
+                    serverNowBaseMs = serverMs;
+                    clientNowBaseMs = Date.now();
+                }
                 renderAll();
             } catch (_) { }
         };
@@ -359,7 +366,7 @@
                 ? `ERASE ${srcLabel}`
                 : `COPY ${srcLabel} → ${dstLabel}`;
 
-            const elapsed = formatElapsed(j.createdAt);
+            const elapsed = formatElapsed(j.createdAt, j.endedAt);
             const prog = j.progress || {};
             const pct = prog.percent || 0;
             const rate = prog.rate || '-';
@@ -450,9 +457,12 @@
         return m ? `Slot${m[1].padStart(2, '0')}` : 'Slot??';
     }
 
-    function formatElapsed(createdAt) {
+    function formatElapsed(createdAt, endedAt) {
         if (!createdAt) return '';
-        const diff = Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000);
+        const endMs = endedAt ? new Date(endedAt).getTime() : getServerNowMs();
+        const startMs = new Date(createdAt).getTime();
+        if (!Number.isFinite(endMs) || !Number.isFinite(startMs)) return '';
+        const diff = Math.floor((endMs - startMs) / 1000);
         if (diff < 0) return '0s';
         const d = Math.floor(diff / 86400);
         const h = Math.floor((diff % 86400) / 3600);
@@ -460,6 +470,13 @@
         const s = diff % 60;
         if (d > 0) return `${d}d ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
         return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function getServerNowMs() {
+        if (Number.isFinite(serverNowBaseMs) && Number.isFinite(clientNowBaseMs)) {
+            return serverNowBaseMs + (Date.now() - clientNowBaseMs);
+        }
+        return Date.now();
     }
 
     // ---- Operations ----

@@ -176,6 +176,8 @@ func (s *Server) processUpdates() {
 				j.ErrMsg = u.Err.Error()
 			}
 			if u.Completed || u.Cancelled || u.State == model.JobError {
+				now := time.Now()
+				j.EndedAt = &now
 				delete(s.jobCancels, u.JobID)
 			}
 		}
@@ -190,6 +192,7 @@ type StateDTO struct {
 	Enclosure  string          `json:"enclosure"`
 	Jobs       []*model.Job    `json:"jobs"`
 	ActiveJobs []*model.Job    `json:"activeJobs"`
+	ServerNow  time.Time       `json:"serverNow"`
 }
 
 func (s *Server) buildState() StateDTO {
@@ -213,6 +216,7 @@ func (s *Server) buildState() StateDTO {
 		Enclosure:  s.activeEnclosureName,
 		Jobs:       all,
 		ActiveJobs: active,
+		ServerNow:  time.Now(),
 	}
 }
 
