@@ -255,13 +255,13 @@
     function renderOpPanel() {
         const panel = document.getElementById('op-panel');
         if (srcSlot === null) { panel.style.display = 'none'; return; }
-        panel.style.display = '';
+        panel.style.display = 'block';
 
         document.getElementById('op-src-val').textContent = `Slot${String(srcSlot).padStart(2, '0')}`;
 
         const dstStep = document.getElementById('op-dst-step');
         if (dstSlot !== null) {
-            dstStep.style.display = '';
+            dstStep.style.display = 'block';
             document.getElementById('op-dst-val').textContent = `Slot${String(dstSlot).padStart(2, '0')}`;
         } else {
             dstStep.style.display = 'none';
@@ -275,7 +275,7 @@
         const list = document.getElementById('job-list');
         const jobs = [...state.jobs].reverse();
         if (jobs.length === 0) {
-            list.innerHTML = '<div style="color:var(--text-dim);font-size:0.85rem;">- No jobs -</div>';
+            list.innerHTML = '<div class="no-jobs">- No jobs -</div>';
             return;
         }
         const existingCards = new Map();
@@ -313,7 +313,7 @@
       <span class="job-state">${j.state}</span>
       <div class="job-info">
         <div class="job-title">${title}</div>
-        <div class="job-meta">${j.name} · ${j.id.slice(0, 8)} · ${elapsed}${j.errMsg ? ' · <span style="color:var(--red)">' + j.errMsg + '</span>' : ''}</div>
+        <div class="job-meta">${j.name} · ${j.id.slice(0, 8)} · ${elapsed}${j.errMsg ? ' · <span class="text-danger">' + j.errMsg + '</span>' : ''}</div>
       </div>
       ${isActive ? `<div class="job-progress">
         ${op === 'erase' ? `
@@ -515,7 +515,7 @@
     // ---- Disk info modal ----
     async function showDiskInfo(slot) {
         const table = document.getElementById('info-table');
-        table.innerHTML = '<tr><td colspan="2" style="color:var(--text-dim)">Loading...</td></tr>';
+        table.innerHTML = '<tr><td colspan="2" class="td-muted">Loading...</td></tr>';
         document.getElementById('info-overlay').classList.add('show');
         try {
             const r = await fetch(`/api/diskinfo?enc=${selectedEnc}&slot=${slot}`);
@@ -528,7 +528,7 @@
       <tr><td>Size</td><td>${info.size}</td></tr>
     `;
         } catch (e) {
-            table.innerHTML = `<tr><td colspan="2" style="color:var(--red)">Failed to load: ${e}</td></tr>`;
+            table.innerHTML = `<tr><td colspan="2" class="td-error">Failed to load: ${e}</td></tr>`;
         }
     }
     document.getElementById('info-close').addEventListener('click', () => {

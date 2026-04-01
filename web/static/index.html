@@ -23,13 +23,13 @@
             </div>
             <div id="disk-grid"></div>
 
-            <div id="op-panel" style="display:none">
+            <div id="op-panel">
                 <h2 id="op-title">Operation</h2>
                 <div class="op-step" id="op-src-step">
                     <label>Source Slot</label>
                     <span class="slot-display" id="op-src-val">-</span>
                 </div>
-                <div class="op-step" id="op-dst-step" style="display:none">
+                <div class="op-step" id="op-dst-step">
                     <label>Destination Slot</label>
                     <span class="slot-display" id="op-dst-val">-</span>
                 </div>
@@ -44,7 +44,7 @@
             <div id="job-section">
                 <div class="section-title">Job Status</div>
                 <div id="job-list">
-                    <div style="color:var(--text-dim);font-size:0.85rem;">- No jobs -</div>
+                    <div class="no-jobs">- No jobs -</div>
                 </div>
             </div>
         </section>
@@ -82,20 +82,19 @@
         <div class="modal" id="info-modal">
             <h2>Disk Information</h2>
             <table class="info-table" id="info-table"></table>
-            <div class="modal-btns" style="margin-top:16px">
+            <div class="modal-btns modal-btns-spaced">
                 <button class="btn-ghost" id="info-close">CLOSE</button>
             </div>
         </div>
     </div>
 
     <!-- Enclosure setup modal (shown once when needsSetup=true) -->
-    <div class="modal-overlay show" id="setup-overlay" style="display:none">
+    <div class="modal-overlay" id="setup-overlay">
         <div class="modal">
             <h2>Select Enclosure</h2>
-            <div style="margin-bottom:12px;color:var(--text-dim);font-size:0.9rem;">
+            <div class="modal-note">
                 Select the enclosure to use. Your choice will be saved to the config file.</div>
-            <select id="setup-picker"
-                style="width:100%;padding:8px;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:4px;font-size:1rem;margin-bottom:16px"></select>
+            <select id="setup-picker" class="setup-picker"></select>
             <div class="modal-btns">
                 <button class="btn-primary" id="setup-ok">OK</button>
             </div>
