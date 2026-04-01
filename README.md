@@ -24,7 +24,7 @@ A web-based disk management UI for copying and erasing drives in multi-bay enclo
 ```sh
 git clone https://github.com/yourname/diskman-web
 cd diskman-web
-go build -o diskman-web .
+CGO_ENABLED=0 go build -o diskman-web .
 ```
 
 ## Usage
