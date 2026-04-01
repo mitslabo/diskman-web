@@ -11,7 +11,6 @@ A web-based disk management UI for copying and erasing drives in multi-bay enclo
 - Multiple enclosure profiles in one config file
 - Active enclosure selectable via CLI flag, config file, or first-run browser popup
 - Job history with cancel support
-- Dry-run and debug modes for testing without real devices
 
 ## Requirements
 
@@ -37,8 +36,6 @@ Flags:
   -config    <path>   Path to config file (default: platform config dir)
   -enclosure <name>   Active enclosure name (overrides config activeEnclosure)
   -addr      <addr>   Listen address, e.g. :8080 (overrides config)
-  -dry-run            Simulate operations without touching devices
-  -debug              Enable debug mode (implies --dry-run)
 ```
 
 On first run, a default config file is created at:
@@ -94,7 +91,7 @@ Then open `http://localhost:8080` in a browser.
 | `enclosure.grid`  | 2D array of slot numbers matching the physical bay layout    |
 | `enclosure.devices` | Map of slot number (string) → block device path            |
 
-If `activeEnclosure` is not set and `--enclosure` is not given, a selection popup is shown in the browser on first load and the choice is saved to the config file.
+If `activeEnclosure` is not set and `--enclosure` is not given, a selection popup is shown in the browser on first load and the choice is saved to the config file. After that initial setup, the web UI no longer offers enclosure switching.
 
 ## Enclosure Selection Priority
 

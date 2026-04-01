@@ -28,13 +28,7 @@ func main() {
 	configPath := flag.String("config", "", "path to config file (default: platform config dir)")
 	enclosure := flag.String("enclosure", "", "active enclosure name (overrides config activeEnclosure)")
 	addr := flag.String("addr", "", "listen address (e.g. :8080); overrides config")
-	dryRun := flag.Bool("dry-run", false, "do not execute ddrescue/dd; simulate progress")
-	debug := flag.Bool("debug", false, "enable debug mode (mock /dev/diskN paths, implies dry-run)")
 	flag.Parse()
-
-	if *debug {
-		*dryRun = true
-	}
 
 	configSpecified := false
 	flag.Visit(func(f *flag.Flag) {
@@ -58,7 +52,7 @@ func main() {
 		cfg.Addr = *addr
 	}
 
-	srv, err := web.NewServer(cfg, effectivePath, *enclosure, *dryRun, *debug)
+	srv, err := web.NewServer(cfg, effectivePath, *enclosure)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "server init error:", err)
 		os.Exit(1)

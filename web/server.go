@@ -23,8 +23,6 @@ import (
 type Server struct {
 	cfg        config.Config
 	configPath string
-	dryRun     bool
-	debug      bool
 
 	activeEnclosureIdx  int
 	activeEnclosureName string
@@ -42,7 +40,7 @@ type Server struct {
 	sseMu      sync.Mutex
 }
 
-func NewServer(cfg config.Config, configPath string, enclosureName string, dryRun, debug bool) (*Server, error) {
+func NewServer(cfg config.Config, configPath string, enclosureName string) (*Server, error) {
 	// Priority: CLI --enclosure > config.ActiveEnclosure
 	activeName := enclosureName
 	if activeName == "" {
@@ -72,8 +70,6 @@ func NewServer(cfg config.Config, configPath string, enclosureName string, dryRu
 	s := &Server{
 		cfg:                 cfg,
 		configPath:          configPath,
-		dryRun:              dryRun,
-		debug:               debug,
 		activeEnclosureIdx:  activeIdx,
 		activeEnclosureName: activeName,
 		needsSetup:          needsSetup,
@@ -111,10 +107,6 @@ func (s *Server) checkDeviceExists() map[string]bool {
 				continue
 			}
 			if _, seen := exists[path]; seen {
-				continue
-			}
-			if s.debug {
-				exists[path] = true
 				continue
 			}
 			_, err := os.Stat(path)
@@ -195,8 +187,6 @@ func (s *Server) processUpdates() {
 // ----- state DTO -----
 
 type StateDTO struct {
-	DryRun     bool            `json:"dryRun"`
-	Debug      bool            `json:"debug"`
 	Enclosure  string          `json:"enclosure"`
 	Jobs       []*model.Job    `json:"jobs"`
 	ActiveJobs []*model.Job    `json:"activeJobs"`
@@ -220,8 +210,6 @@ func (s *Server) buildState() StateDTO {
 		}
 	}
 	return StateDTO{
-		DryRun:     s.dryRun,
-		Debug:      s.debug,
 		Enclosure:  s.activeEnclosureName,
 		Jobs:       all,
 		ActiveJobs: active,
@@ -230,8 +218,6 @@ func (s *Server) buildState() StateDTO {
 
 type ConfigDTO struct {
 	Addr                string             `json:"addr"`
-	DryRun              bool               `json:"dryRun"`
-	Debug               bool               `json:"debug"`
 	Enclosures          []config.Enclosure `json:"enclosures"`
 	ActiveEnclosureIdx  int                `json:"activeEnclosureIdx"`
 	ActiveEnclosureName string             `json:"activeEnclosureName"`
@@ -251,8 +237,6 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 	s.mu.RUnlock()
 	_ = json.NewEncoder(w).Encode(ConfigDTO{
 		Addr:                s.cfg.Addr,
-		DryRun:              s.dryRun,
-		Debug:               s.debug,
 		Enclosures:          s.cfg.Enclosures,
 		ActiveEnclosureIdx:  s.activeEnclosureIdx,
 		ActiveEnclosureName: s.activeEnclosureName,
@@ -332,7 +316,7 @@ func (s *Server) handleStartJob(w http.ResponseWriter, r *http.Request) {
 	s.jobCancels[id] = cancel
 	s.mu.Unlock()
 
-	runner.StartJob(ctx, *job, s.dryRun, s.updates)
+	runner.StartJob(ctx, *job, s.updates)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -434,9 +418,6 @@ func (s *Server) devicePath(e config.Enclosure, slot int) string {
 	if p := e.Devices[fmt.Sprintf("%d", slot)]; p != "" {
 		return p
 	}
-	if s.debug {
-		return fmt.Sprintf("/dev/disk%d", slot)
-	}
 	return ""
 }
 
@@ -459,6 +440,11 @@ func (s *Server) isDeviceBusy(path string) bool {
 }
 
 func (s *Server) handleSetEnclosure(w http.ResponseWriter, r *http.Request) {
+	if !s.needsSetup {
+		http.Error(w, "enclosure is fixed after initial setup", http.StatusConflict)
+		return
+	}
+
 	var req struct {
 		Name string `json:"name"`
 	}

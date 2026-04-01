@@ -3,7 +3,7 @@
 
     // ---- State ----
     let cfg = null;
-    let state = { dryRun: false, debug: false, enclosure: '', jobs: [], activeJobs: [] };
+    let state = { enclosure: '', jobs: [], activeJobs: [] };
     let selectedEnc = 0;
     let srcSlot = null;
     let dstSlot = null;
@@ -24,7 +24,6 @@
             if (cfg.needsSetup) {
                 showSetupModal();
             } else {
-                renderEnclosurePicker();
                 renderAll();
             }
         } catch (e) {
@@ -102,13 +101,7 @@
         isRendering = true;
         try {
             if (!cfg) return;
-            document.getElementById('badge-dry').style.display = state.dryRun ? '' : 'none';
-            document.getElementById('badge-debug').style.display = state.debug ? '' : 'none';
-            if (state.dryRun) document.body.classList.add('dry-run-mode');
-            else document.body.classList.remove('dry-run-mode');
-
             renderBanner();
-            renderEnclosurePicker();
             renderGrid();
             renderOpPanel();
             renderJobList();
@@ -121,18 +114,6 @@
     function renderBanner() {
         const badge = document.getElementById('enclosure-badge');
         badge.textContent = `Enclosure: ${currentEnclosureName()}`;
-    }
-
-    function renderEnclosurePicker() {
-        const wrap = document.getElementById('picker-wrap');
-        const picker = document.getElementById('enclosure-picker');
-        if (!cfg || !picker || !wrap) return;
-        wrap.classList.add('show');
-        const options = cfg.enclosures.map((enclosure, index) => {
-            const selected = index === selectedEnc ? ' selected' : '';
-            return `<option value="${index}"${selected}>${enclosure.name}</option>`;
-        }).join('');
-        picker.innerHTML = options;
     }
 
     function activeJobsForPath(path) {
@@ -566,24 +547,6 @@
         if (state.activeJobs.length > 0) renderJobList();
     }, 1000);
 
-    // ---- Enclosure picker change ----
-    document.getElementById('enclosure-picker').addEventListener('change', async (e) => {
-        if (isRendering) return;
-        const newEnc = Number(e.target.value);
-        if (newEnc === selectedEnc) return;
-        selectedEnc = newEnc;
-        srcSlot = null;
-        dstSlot = null;
-        try {
-            await fetch('/api/enclosure', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: cfg.enclosures[newEnc].name }),
-            });
-        } catch (_) { }
-        renderAll();
-    });
-
     // ---- Setup modal (first-time selection) ----
     function showSetupModal() {
         const picker = document.getElementById('setup-picker');
@@ -613,7 +576,6 @@
         cfg.needsSetup = false;
         const overlay = document.getElementById('setup-overlay');
         overlay.classList.remove('show');
-        renderEnclosurePicker();
         renderAll();
     });
 

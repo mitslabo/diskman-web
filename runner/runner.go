@@ -35,17 +35,12 @@ var (
 )
 
 // StartJob launches a job goroutine and sends updates to out.
-func StartJob(ctx context.Context, job model.Job, dryRun bool, out chan<- Update) {
+func StartJob(ctx context.Context, job model.Job, out chan<- Update) {
 	go func() {
 		out <- Update{JobID: job.ID, State: model.JobRunning}
 
 		if job.Op == "erase" {
-			var err error
-			if dryRun {
-				err = runDryErase(ctx, job.ID, out)
-			} else {
-				err = runErase(ctx, job, out)
-			}
+			err := runErase(ctx, job, out)
 			if err != nil {
 				if ctx.Err() != nil {
 					out <- Update{JobID: job.ID, State: model.JobCancelled, Cancelled: true}
@@ -70,46 +65,17 @@ func StartJob(ctx context.Context, job model.Job, dryRun bool, out chan<- Update
 				return
 			default:
 			}
-			if dryRun {
-				if err := runDryPass(ctx, job.ID, pass, out); err != nil {
-					if ctx.Err() != nil {
-						out <- Update{JobID: job.ID, State: model.JobCancelled, Cancelled: true}
-						return
-					}
-					out <- Update{JobID: job.ID, State: model.JobError, Err: err}
+			if err := runRealPass(ctx, job, pass, out); err != nil {
+				if ctx.Err() != nil {
+					out <- Update{JobID: job.ID, State: model.JobCancelled, Cancelled: true}
 					return
 				}
-			} else {
-				if err := runRealPass(ctx, job, pass, out); err != nil {
-					if ctx.Err() != nil {
-						out <- Update{JobID: job.ID, State: model.JobCancelled, Cancelled: true}
-						return
-					}
-					out <- Update{JobID: job.ID, State: model.JobError, Err: err}
-					return
-				}
+				out <- Update{JobID: job.ID, State: model.JobError, Err: err}
+				return
 			}
 		}
 		out <- Update{JobID: job.ID, State: model.JobDone, Completed: true}
 	}()
-}
-
-func runDryPass(ctx context.Context, jobID string, pass int, out chan<- Update) error {
-	p := model.Progress{Pass: pass}
-	for i := 0; i <= 20; i++ {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
-		p.Percent = float64(i * 5)
-		p.Rescued = fmt.Sprintf("%d%%", i*5)
-		p.Rate = "dry-run"
-		p.Remaining = "-"
-		out <- Update{JobID: jobID, Progress: p, State: model.JobRunning}
-		time.Sleep(500 * time.Millisecond)
-	}
-	return nil
 }
 
 func runRealPass(ctx context.Context, job model.Job, pass int, out chan<- Update) error {
@@ -312,20 +278,3 @@ func formatBytes(b int64) string {
 	return fmt.Sprintf("%.1f %ciB", float64(b)/float64(div), "KMGTPE"[exp])
 }
 
-func runDryErase(ctx context.Context, jobID string, out chan<- Update) error {
-	p := model.Progress{Pass: 1}
-	for i := 0; i <= 20; i++ {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
-		p.Percent = float64(i * 5)
-		p.Rescued = fmt.Sprintf("%d%%", i*5)
-		p.Rate = "dry-run"
-		p.Remaining = "-"
-		out <- Update{JobID: jobID, Progress: p, State: model.JobRunning}
-		time.Sleep(500 * time.Millisecond)
-	}
-	return nil
-}

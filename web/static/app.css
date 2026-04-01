@@ -26,10 +26,6 @@ body {
     min-height: 100vh;
 }
 
-body.dry-run-mode {
-    border: 3px solid var(--yellow);
-}
-
 header {
     background: var(--panel);
     border-bottom: 2px solid var(--border);
@@ -42,23 +38,6 @@ header {
 header h1 {
     font-size: 1.2rem;
     color: var(--cyan);
-}
-
-.badge {
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: bold;
-}
-
-.badge-dry {
-    background: var(--yellow);
-    color: #000;
-}
-
-.badge-debug {
-    background: var(--cyan);
-    color: #fff;
 }
 
 .badge-conn {
@@ -143,25 +122,6 @@ main {
     gap: 16px;
     margin-bottom: 12px;
     flex-wrap: wrap;
-}
-
-.content-header-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-left: auto;
-}
-
-.picker-wrap {
-    display: none;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.8rem;
-    color: var(--text-dim);
-}
-
-.picker-wrap.show {
-    display: inline-flex;
 }
 
 .status-chip {
